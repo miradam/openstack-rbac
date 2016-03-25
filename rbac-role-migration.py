@@ -80,7 +80,7 @@ class RoleMigrationClass():
                 'credentials and role assignments and try again.')
 
         for required_role in ALL_VALID_ROLES:
-            if not required_role in self.role_ids:
+            if required_role not in self.role_ids:
                 raise ValueError(
                     'Required role \'' + required_role + '\' doesn\'t appear '
                     'to be defined.')
@@ -122,7 +122,7 @@ class RoleMigrationClass():
         assert comp_role in ALL_VALID_ROLES
         ret = []
         for role in self.preexisting_roles[scope][master_role]:
-            if not role in self.preexisting_roles[scope][comp_role]:
+            if role not in self.preexisting_roles[scope][comp_role]:
                 ret.append(role)
 
         return ret
@@ -134,34 +134,36 @@ class RoleMigrationClass():
         roles_diff = self.__get_assignment_differences(
             scope, master_role, comp_role)
         pretty_desc = '\'' + scope + ' ' + master_role + '\''
-        if len(roles_diff) == 0:
+        if not roles_diff:
             print 'NO differences detected for ' + pretty_desc
             print ''
             return
         else:
             print 'Differences detected for ' + pretty_desc
             print 'user_id\t\t\t\t\t' + scope + '_id'
-            for role in roles_diff:
-                print str(role[0]) + '\t' + str(role[1])
+            for user_id, scope_id in roles_diff:
+                print str(user_id) + '\t' + str(scope_id)
             print ''
 
-        if do_grant:
-            for role in roles_diff:
-                try:
-                    if DOMAIN_SCOPE == scope:
-                        self.ks_client.roles.grant(
-                            role=self.role_ids[comp_role],
-                            domain=role[1],
-                            user=role[0])
-                    else:
-                        assert PROJECT_SCOPE == scope
-                        self.ks_client.roles.grant(
-                            role=self.role_ids[comp_role],
-                            project=role[1],
-                            user=role[0])
-                except:
-                    print 'FAILED assignment ' + comp_role + ' user_id ' \
-                        + str(role[0]) + ' ' + scope + '_id ' + str(role[1])
+        if not do_grant:
+            return
+
+        for role in roles_diff:
+            try:
+                if DOMAIN_SCOPE == scope:
+                    self.ks_client.roles.grant(
+                        role=self.role_ids[comp_role],
+                        domain=role[1],
+                        user=role[0])
+                else:
+                    assert PROJECT_SCOPE == scope
+                    self.ks_client.roles.grant(
+                        role=self.role_ids[comp_role],
+                        project=role[1],
+                        user=role[0])
+            except:
+                print 'FAILED assignment ' + comp_role + ' user_id ' \
+                    + str(role[0]) + ' ' + scope + '_id ' + str(role[1])
 
 
 if __name__ == "__main__":
